@@ -1,5 +1,7 @@
 package org.avaje.dbmigration;
 
+import com.avaje.ebean.config.Platform;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -30,6 +32,8 @@ public class MigrationConfig {
 
   private String dbSchema;
   private boolean createSchemaIfNotExists;
+
+  private Platform platform;
 
   /**
    * Return the name of the migration table.
@@ -236,6 +240,20 @@ public class MigrationConfig {
   }
 
   /**
+   * Return the underlying Database Platform
+   */
+  public Platform getPlatform() {
+    return platform;
+  }
+
+  /**
+   * Sets the underlying Database Platform
+   */
+  public void setPlatform(Platform platform) {
+    this.platform = platform;
+  }
+
+  /**
    * Load configuration from standard properties.
    */
   public void load(Properties props) {
@@ -274,6 +292,15 @@ public class MigrationConfig {
 
     } catch (SQLException e) {
       throw new MigrationException("Error trying to create Connection", e);
+    }
+  }
+
+  public void determinePlatform(Connection connection) throws SQLException {
+    final String productName = connection.getMetaData().getDatabaseProductName();
+    if ("Microsoft SQL Server".equals(productName)) {
+      platform = Platform.SQLSERVER;
+    } else {
+      platform = Platform.GENERIC;
     }
   }
 

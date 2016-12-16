@@ -1,5 +1,6 @@
 package org.avaje.dbmigration;
 
+import com.avaje.ebean.config.Platform;
 import org.avaje.datasource.DataSourceConfig;
 import org.avaje.datasource.DataSourceFactory;
 import org.avaje.datasource.DataSourcePool;
@@ -18,6 +19,7 @@ public class MigrationRunnerTest {
     config.setDbPassword("");
     config.setDbDriver("org.h2.Driver");
     config.setDbUrl("jdbc:h2:mem:db1");
+    config.setPlatform(Platform.H2);
     return config;
   }
 

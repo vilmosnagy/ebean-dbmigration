@@ -75,6 +75,7 @@ public class MigrationRunner {
       MigrationSchema schema = new MigrationSchema(migrationConfig, connection);
       schema.createAndSetIfNeeded();
 
+      migrationConfig.determinePlatform(connection);
       runMigrations(resources, connection);
 
       connection.commit();

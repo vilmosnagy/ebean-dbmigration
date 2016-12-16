@@ -1,5 +1,7 @@
 package org.avaje.dbmigration.runner;
 
+import org.avaje.dbmigration.MigrationConfig;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -100,9 +102,15 @@ class MigrationMetaRow {
   /**
    * Return the SQL insert given the table migration meta data is stored in.
    */
-  static String selectSql(String table) {
-    return "select id, mtype, mstatus, mversion, mcomment, mchecksum, run_on, run_by, run_time from "
-        + table + " for update";
+  static String selectSql(MigrationConfig config, String table) {
+    switch (config.getPlatform()) {
+      case SQLSERVER:
+        return "select id, mtype, mstatus, mversion, mcomment, mchecksum, run_on, run_by, run_time from "
+                + table + " width (updlock)";
+      default:
+        return "select id, mtype, mstatus, mversion, mcomment, mchecksum, run_on, run_by, run_time from "
+                + table + " for update";
+    }
   }
 
   /**

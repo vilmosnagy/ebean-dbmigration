@@ -1,5 +1,6 @@
 package org.avaje.dbmigration.runner;
 
+import com.avaje.ebean.config.Platform;
 import org.avaje.dbmigration.MigrationConfig;
 import org.avaje.dbmigration.util.IOUtils;
 import org.avaje.dbmigration.util.JdbcClose;
@@ -8,12 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,6 +36,7 @@ public class MigrationTable {
   private final String selectSql;
 
   private final LinkedHashMap<String, MigrationMetaRow> migrations;
+  private final MigrationConfig config;
 
   private MigrationMetaRow lastMigration;
 
@@ -52,9 +49,10 @@ public class MigrationTable {
     this.migrations = new LinkedHashMap<String, MigrationMetaRow>();
 
     this.catalog = null;
+    this.config = config;
     this.schema = config.getDbSchema();
     this.table = config.getMetaTable();
-    this.selectSql = MigrationMetaRow.selectSql(table);
+    this.selectSql = MigrationMetaRow.selectSql(config, table);
     this.insertSql = MigrationMetaRow.insertSql(table);
     this.scriptTransform = createScriptTransform(config);
     this.envUserName = System.getProperty("user.name");
@@ -82,7 +80,7 @@ public class MigrationTable {
   public void createIfNeeded() throws SQLException, IOException {
 
     if (!tableExists(connection)) {
-      createTable(connection);
+      createTable(connection, config.getPlatform());
     }
 
     PreparedStatement query = connection.prepareStatement(selectSql);
@@ -102,9 +100,9 @@ public class MigrationTable {
   }
 
 
-  private void createTable(Connection connection) throws IOException, SQLException {
+  private void createTable(Connection connection, Platform platform) throws IOException, SQLException {
 
-    String script = ScriptTransform.table(table, getCreateTableScript());
+    String script = ScriptTransform.table(table, getCreateTableScript(platform));
 
     MigrationScriptRunner run = new MigrationScriptRunner(connection);
     run.runScript(false, script, "create migration table");
@@ -112,13 +110,19 @@ public class MigrationTable {
 
   /**
    * Return the create table script.
+   * @param platform
    */
-  private String getCreateTableScript() throws IOException {
+  private String getCreateTableScript(Platform platform) throws IOException {
     // supply a script to override the default table create script
     String script = readResource("migration-support/create-table.sql");
     if (script == null) {
       // no, just use the default script
-      script = readResource("migration-support/default-create-table.sql");
+      switch (platform) {
+        case SQLSERVER:
+          return readResource("migration-support/sql-server-create-table.sql");
+        default:
+          return readResource("migration-support/default-create-table.sql");
+      }
     }
     return script;
   }
